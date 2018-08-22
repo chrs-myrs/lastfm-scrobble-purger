@@ -1,0 +1,11 @@
+startPage: 1
+endPage: 1
+itemsPerPage: 200
+requestsPerSecond: 15
+simulationMode: false
+csfrtoken: {{CSFR_TOKEN}}
+sessionid: {{BROWSER_SESSION_ID}}
+apiKey: {{API_KEY}}
+artistsToRemove:
+- Deep Sleep Music Collective
+- Nursery Rhymes 123

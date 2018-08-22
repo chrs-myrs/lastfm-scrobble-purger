@@ -1,17 +1,19 @@
 "use strict"
 
-const config = require('./config.json')
+const yaml = require('js-yaml');
+const fs = require('fs')
+const config = yaml.safeLoad(fs.readFileSync('config.yml', 'utf8'));
 
 const limit = require("simple-rate-limiter");
 const request = limit(require("request")).to(config.requestsPerSecond).per(1000);
 //const request = require("request")
-const fs = require('fs')
+
 
 var totalQueued = 0;
 var totalDeleted = 0;
 
 for (var page = config.startPage; page <= config.endPage; page++) {
-    console.log("Requesting page " + page + " of " + (config.endPage - config.startPage + 1))
+    console.log("Requesting page " + page + " (" + (page - config.startPage + 1) + " of " + (config.endPage - config.startPage + 1) + ")")
     var options = {
         method: 'GET',
         url: 'http://ws.audioscrobbler.com/2.0/',

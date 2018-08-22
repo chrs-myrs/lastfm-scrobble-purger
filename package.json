@@ -1,0 +1,25 @@
+{
+  "name": "lastfm-scrobble-purger",
+  "description": "",
+  "version": "0.1.0",
+  "dependencies": {
+    "simple-rate-limiter": "^0.2.3",
+    "request": "^2.88.0",
+    "js-yaml": "^3.12.0"
+  },
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chrs-myrs/lastfm-scrobble-purger"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/chrs-myrs/lastfm-scrobble-purger/issues"
+  },
+  "homepage": "https://github.com/chrs-myrs/lastfm-scrobble-purger"
+}
