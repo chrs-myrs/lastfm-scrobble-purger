@@ -32,7 +32,7 @@ async function main() {
         console.log("Page " + page + ": Added "+queued+" scrobbles of "+pageCount+" found.");
         totalProcessed += pageCount;
         totalQueued += queued;
-        if(!pageCount) break
+        if(pageCount < config.itemsPerPage) break
     }
     console.log("Total: Added "+totalQueued+" scrobbles of "+totalProcessed+" found.");
 }
@@ -77,7 +77,7 @@ function getPage(page) {
         qs:
             {
                 method: 'user.getrecenttracks',
-                user: config.userName,
+                user: config.username,
                 limit: config.itemsPerPage,
                 page: page,
                 api_key: config.apiKey,

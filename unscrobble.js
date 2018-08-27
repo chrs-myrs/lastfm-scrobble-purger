@@ -18,7 +18,7 @@ const db = low(adapter)
 
 const cookieUrl = 'https://www.last.fm'
 
-var trackTable = db.get('tracks')
+var trackTable = db.get('tracks', 'failed-tracks')
 
 var totalDeleted = 0;
 
