@@ -11,6 +11,7 @@
   },
   "main": "index.js",
   "scripts": {
+    "login": "node index.js login",
     "crawl": "node index.js crawl"
   },
   "repository": {
