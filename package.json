@@ -11,7 +11,7 @@
   },
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "crawl": "node index.js crawl"
   },
   "repository": {
     "type": "git",

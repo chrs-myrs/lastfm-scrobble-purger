@@ -73,13 +73,13 @@ function unscrobble(trackData, page) {
                 Cookie: cookie,
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept-Language': 'en-GB,en;q=0.7,en-US;q=0.3',
-                //'Accept-Encoding': 'gzip, deflate,br',
+                'Accept-Encoding': 'gzip',
                 Accept: '*/*',
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:62.0) Gecko/20100101 Firefox/62.0',
                 'Content-Type': 'application/x-www-form-urlencoded',
                 Referer: 'https://www.last.fm/user/chrsmyrs/library?page=' + page
             },
-        ca: fs.readFileSync('C:\\Users\\christopher.myers\\curl-ca-bundle.crt'),
+        gzip: true,
         form: trackData
     };
 

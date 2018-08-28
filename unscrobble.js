@@ -16,9 +16,12 @@ const FileSync = require('lowdb/adapters/FileSync')
 const adapter = new FileSync('db.json')
 const db = low(adapter)
 
+db.defaults({ tracks: [], 'failed-tracks': [] })
+  .write()
+
 const cookieUrl = 'https://www.last.fm'
 
-var trackTable = db.get('tracks', 'failed-tracks')
+var trackTable = db.get('tracks')
 
 var totalDeleted = 0;
 
