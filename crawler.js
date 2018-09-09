@@ -9,45 +9,41 @@ const limit = require("simple-rate-limiter");
 var limitedRequest
 const request = require("request")
 
-const low = require('lowdb')
-const FileSync = require('lowdb/adapters/FileSync')
+var totalProcessed = 0
+var totalQueued = 0
 
-const adapter = new FileSync('db.json')
-const db = low(adapter)
+var queue = []
 
-// Set some defaults (required if your JSON file is empty)
-db.defaults({ tracks: [] })
-  .write()
-
-var trackTable = db.get('tracks')
-
-var totalProcessed = 0;
-var totalQueued = 0;
-
-module.exports = async function(configIn) {
-    config = configIn
-    limitedRequest = limit(request).to(config.requestsPerSecond).per(1000);
-    for (var page = config.startPage; page <= config.endPage; page++) {
-        console.log("Requesting page " + page + " (" + (page - config.startPage + 1) + " of " + (config.endPage - config.startPage + 1) + ")")
-        let [queued, pageCount] = await processPage(page)
-        console.log("Page " + page + ": Added "+queued+" scrobbles of "+pageCount+" found.");
-        totalProcessed += pageCount;
-        totalQueued += queued;
-        if(pageCount < config.itemsPerPage) break
+/**
+ * @returns []
+ * @param Object configIn 
+ */
+module.exports = {
+    crawl: async function (configIn) {
+        config = configIn
+        limitedRequest = limit(request).to(config.requestsPerSecond).per(1000);
+        for (var page = config.startPage; page <= config.endPage; page++) {
+            console.log("Requesting page " + page + " (" + (page - config.startPage + 1) + " of " + (config.endPage - config.startPage + 1) + ")")
+            let [queued, pageCount] = await processPage(page)
+            console.log("Page " + page + ": Added " + queued + " scrobbles of " + pageCount + " found.");
+            totalProcessed += pageCount;
+            totalQueued += queued;
+            if (pageCount < config.itemsPerPage) break
+        }
+        console.log("Total: Added " + totalQueued + " scrobbles of " + totalProcessed + " found.");
+        return queue
     }
-    console.log("Total: Added "+totalQueued+" scrobbles of "+totalProcessed+" found.");
 }
 
 async function processPage(page) {
-    try{
-       var resTracks = await getPage(page) 
+    try {
+        var resTracks = await getPage(page)
     } catch (error) {
         console.error(err)
     }
 
-    totalProcessed += resTracks.length
     let queued = 0
-        
+
     resTracks.filter(
         t => (config.artistsToRemove.indexOf(t.artist['#text']) >= 0)
     ).map(
@@ -60,14 +56,10 @@ async function processPage(page) {
         }
         )
         .forEach(function (unscrobbleTrack, index, all) {
-            if(trackTable.find({'timestamp':unscrobbleTrack.timestamp}).value()) {
-                console.log('Scrobble with timestamp '+unscrobbleTrack.timestamp+' already exisits on page '+page+ ' skipping.')
-            } else {
-                trackTable.push(unscrobbleTrack).write()
-            }
+            queue.push(unscrobbleTrack)
             queued++
         })
-    
+
     return [queued, resTracks.length]
 }
 
@@ -84,18 +76,18 @@ function getPage(page) {
                 api_key: config.apiKey,
                 format: 'json'
             },
-        headers: { }
+        headers: {}
     };
 
-   return new Promise((resolve, reject) => {
-    request(options, function (error, response, body) {
+    return new Promise((resolve, reject) => {
+        request(options, function (error, response, body) {
             if (error) reject(error)
             if (response.statusCode != 200) {
                 reject('Invalid status code <' + response.statusCode + '>');
             }
             let obj = JSON.parse(body)
-            if(typeof(obj) === 'undefined' || !obj.hasOwnProperty('recenttracks') || !obj.recenttracks.hasOwnProperty('track')) resolve([])
+            if (typeof (obj) === 'undefined' || !obj.hasOwnProperty('recenttracks') || !obj.recenttracks.hasOwnProperty('track')) resolve([])
             else resolve(obj.recenttracks.track)
+        })
     })
-   })
 }

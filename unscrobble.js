@@ -2,53 +2,44 @@
 
 const yaml = require('js-yaml');
 const fs = require('fs')
-const config = yaml.safeLoad(fs.readFileSync('config.yml', 'utf8'));
+var config;
 const session = yaml.safeLoad(fs.readFileSync('session.yml', 'utf8'));
 
 const limit = require("simple-rate-limiter");
 const request = require("request")
-const limitedRequest = limit(require("request")).to(config.requestsPerSecond).per(1000);
+var limitedRequest
 //const request = require("request")
 
-const low = require('lowdb')
-const FileSync = require('lowdb/adapters/FileSync')
-
-const adapter = new FileSync('db.json')
-const db = low(adapter)
-
-db.defaults({ tracks: [], 'failed-tracks': [] })
-  .write()
-
 const cookieUrl = 'https://www.last.fm'
-
-var trackTable = db.get('tracks')
-
-var totalDeleted = 0;
-
-console.log("Database contains "+trackTable.size().value()+" items")
-
-var tracks = trackTable.take(config.maxUnscrobbleBatchSize).value()
-
-var index = 0
-var total = tracks.length
-
 var jar = request.jar()
-jar.setCookie(request.cookie(' sessionid=' + session.sessionid), cookieUrl)
-jar.setCookie(request.cookie(' csrftoken=' + session.csrftoken), cookieUrl)
 
-tracks.forEach(track => {
-    //console.log(track)
-    unscrobble(track).then(() => {
-        console.log("Deleted scrobble " + ++index + " of " + total + ": " + track.artist_name + " - " + track.track_name + " @ " + (new Date(track.timestamp * 1000)).toUTCString())
-        totalDeleted++
-        trackTable.remove(track).write()
-    }, (error) => {
-        console.log(error)
-        db.get('failed-tracks').push(Object.assign({ 'fails': 1, 'error': error }, track)).write()
-        trackTable.remove(track).write()
-    })
-});
+module.exports = {
+    unscrobble: async function (configIn, tracks, trackSuccessCallback, trackFailCallback) {
+        config = configIn
 
+        limitedRequest = limit(require("request")).to(config.requestsPerSecond).per(1000);
+
+        var totalDeleted = 0;
+
+        var index = 0
+        var total = tracks.length
+
+        jar.setCookie(request.cookie(' sessionid=' + session.sessionid), cookieUrl)
+        jar.setCookie(request.cookie(' csrftoken=' + session.csrftoken), cookieUrl)
+
+        return Promise.all(tracks.map(track => {
+            //console.log(track)
+            return unscrobble(track).then(() => {
+                console.log("Deleted scrobble " + ++index + " of " + total + ": " + track.artist_name + " - " + track.track_name + " @ " + (new Date(track.timestamp * 1000)).toUTCString())
+                totalDeleted++
+                trackSuccessCallback(track)
+            }, (error) => {
+                console.log(error)
+                trackFailCallback(error, track)
+            })
+        }))
+    }
+}
 
 
 function unscrobble(track) {
@@ -72,24 +63,26 @@ function unscrobble(track) {
     }
 
     return new Promise((resolve, reject) => {
-            try {
-                limitedRequest(options, function (error, response, body) {
-                    if (error) reject("Error deleting " + JSON.stringify(track) + " - " + error)
-                    try {
-                        if (JSON.parse(body).result === true) {
-                            resolve()
-                        } else {
-                            reject("Error deleting " + JSON.stringify(track))
-                        }
-                    } catch {
-                        console.log(response)
-                        reject("Error parsing JSON response " + body + " - " + error)
+        try {
+            limitedRequest(options, function (error, response, body) {
+                if (error) reject("Error deleting " + JSON.stringify(track) + " - " + error)
+                try {
+                    if (JSON.parse(body).result === true) {
+                        resolve()
+                    } else if (JSON.parse(body).result === false) {
+                        reject("Delete returned fail: " + JSON.stringify(track))
+                    } else {
+                        reject("Error deleting " + JSON.stringify(track) + ' body:'+body)
                     }
+                } catch (error) {
+                    console.log(response)
+                    reject("Error parsing JSON response " + body + " - " + error)
+                }
 
-                });
-            } catch (error) {
-                reject("Error deleting " + JSON.stringify(track) + " - " + error)
-            }
+            });
+        } catch (error) {
+            reject("Error deleting " + JSON.stringify(track) + " - " + error)
+        }
     })
 
 

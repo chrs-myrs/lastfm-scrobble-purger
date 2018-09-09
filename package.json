@@ -12,7 +12,8 @@
   "main": "index.js",
   "scripts": {
     "login": "node index.js login",
-    "crawl": "node index.js crawl"
+    "crawl": "node index.js crawl",
+    "unscrobble": "node index.js unscrobble"
   },
   "repository": {
     "type": "git",
