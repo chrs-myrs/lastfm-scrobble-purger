@@ -33,9 +33,11 @@ module.exports = {
                 console.log("Deleted scrobble " + ++index + " of " + total + ": " + track.artist_name + " - " + track.track_name + " @ " + (new Date(track.timestamp * 1000)).toUTCString())
                 totalDeleted++
                 trackSuccessCallback(track)
+                return 1
             }, (error) => {
                 console.log(error)
                 trackFailCallback(error, track)
+                return 0
             })
         }))
     }

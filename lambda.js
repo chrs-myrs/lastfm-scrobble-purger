@@ -38,9 +38,8 @@ exports.crawler = (event, context, callback) => {
   const crawler = require('./crawler')
   crawler.crawl(config).then(tracks => {
     // get a promise to queue all tracks
-    return Promise.all(tracks.map(track => queueTrack(track)))
+    return Promise.all(tracks.map((track, i) => queueTrack(track, i)))
   }).then(res => {
-    console.log(res)
     callback(null, 'Queued ' + res.length + ' tracks on SQS.')
     logMetric('Queued', res.length || 0)
   }).catch(err => {
@@ -59,22 +58,48 @@ exports.unscrobbler = (event, context, callback) => {
     console.log(`Fetched ${msgs.length} messages`)
 
     try {
-      console.log(msgs)
-    let tracksToUnscrobble = msgs.map(msg => Object.assign({ msgId: msg.ReceiptHandle }, JSON.parse(msg.Body)))
-    console.log(tracksToUnscrobble)
+      let tracksToUnscrobble = msgs.map(msg => Object.assign({ msgId: msg.ReceiptHandle }, JSON.parse(msg.Body)))
+      require('./unscrobble').unscrobble(config, tracksToUnscrobble, track => {
+        deleteMessage(track.msgId)
+      }, (error, track) => {
+        // log already sent to console                     
+      }).then((ret) => {
+        let successes = ret.reduce((a, b) => a + b, 0)
+        logMetric("Unscrobbled", successes)
+        logMetric("Unscrobble Fails", ret.length - successes)
+        console.log("Finished with " + ret.reduce((a, b) => a + b, 0) + "/" + ret.length + " sucesses")
+      }).catch(err => console.log(err))
+    } catch (err) {
+      console.log(err)
+    }
+
+
+  })
+}
+
+exports.unscrobbleTrigger = (event, context, callback) => {
+
+
+  let msgs = event.Records
+
+  console.log(`Fetched ${msgs.length} messages`)
+
+  try {
+    let tracksToUnscrobble = msgs.map(msg => Object.assign({ msgId: msg.receiptHandle }, JSON.parse(msg.body)))
     require('./unscrobble').unscrobble(config, tracksToUnscrobble, track => {
       deleteMessage(track.msgId)
     }, (error, track) => {
       // log already sent to console                     
-    }).then(() => {
-      console.log("Finished")
+    }).then((ret) => {
+      let successes = ret.reduce((a, b) => a + b, 0)
+      logMetric("Unscrobbled", successes)
+      logMetric("Unscrobble Fails", ret.length - successes)
+      console.log("Finished with " + ret.reduce((a, b) => a + b, 0) + "/" + ret.length + " sucesses")
     }).catch(err => console.log(err))
   } catch (err) {
     console.log(err)
   }
 
-
-  })
 }
 
 
@@ -100,11 +125,12 @@ function logMetric(metricName, value) {
   });
 }
 
-function queueTrack(track) {
+function queueTrack(track, index = 0) {
   return new Promise((resolve, reject) => {
     sqs.sendMessage({
       MessageBody: JSON.stringify(track),
-      QueueUrl: sqs_url
+      QueueUrl: sqs_url,
+      DelaySeconds: 10 * Math.ceil(index / 10)
     }, function (err, data) {
       if (err) {
         console.log("Error", err);

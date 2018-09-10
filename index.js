@@ -20,27 +20,25 @@ switch(process.argv[2]) {
     require('./login')()
     break
   case 'crawl':
-    const crawler = require('./crawler')
-    let tracks = crawler.crawl(config).then(tracks => tracks.forEach(track => {
+    require('./crawler').crawl(config).then(tracks => tracks.forEach(track => {
         if (trackTable.find({ 'timestamp': track.timestamp }).value()) {
             console.log('Scrobble with timestamp ' + track.timestamp + ' already exisits - skipping.')
         } else {
-            trackTable.write(track)
+            trackTable.push(track).write()
         }
     })).catch(err => console.log(err))
     break
   case 'unscrobble':
-  db.get('failed-tracks').push({test:1}).write()
+  db.get('failed-tracks').push({test:1}).write()   
     console.log("Database contains "+trackTable.size().value()+" items")
     let tracksToUnscrobble = trackTable.take(config.maxUnscrobbleBatchSize).value()
-    const unscrobbler = require('./unscrobble')
-    unscrobbler.unscrobble(config, tracksToUnscrobble, track => {
+    require('./unscrobble').unscrobble(config, tracksToUnscrobble, track => {
         trackTable.remove(track).write()
     }, (error, track) => {
         db.get('failed-tracks').push(Object.assign({ 'fails': 1, 'error': error }, track)).write()
-        trackTable.remove(track).write()
-    }).then(() => {
-        console.log("Finished")
+        trackTable.remove(track).write()                             
+    }).then((ret) => {
+        console.log("Finished with "+ret.reduce((a,b) => a+b, 0)+"/"+ret.length+" sucesses")
     }).catch(err => console.log(err))
     break
 
