@@ -21,6 +21,7 @@ switch(process.argv[2]) {
     break
   case 'crawl':
     require('./crawler').crawl(config).then(tracks => tracks.forEach(track => {
+        console.log("Writing to database...")
         if (trackTable.find({ 'timestamp': track.timestamp }).value()) {
             console.log('Scrobble with timestamp ' + track.timestamp + ' already exisits - skipping.')
         } else {
