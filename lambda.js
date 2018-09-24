@@ -16,32 +16,35 @@ const yaml = require('js-yaml');
 const fs = require('fs')
 const config = yaml.safeLoad(fs.readFileSync('config.yml', 'utf8'));
 
+
+if (process.env.hasOwnProperty('config'))
+  Object.assign(config, JSON.parse(process.env.config))
+
+if (!process.env.hasOwnProperty('sqs_url')) {
+  console.error("Environment variable 'sqs_url' missing.")
+  process.abort()
+}
+
 const sqs_url = process.env.sqs_url
 
 /**
  * @typedef {Object} env - creates a new type named 'SpecialType'
- * @property {number} pages - a number property of SpecialType
+ * @property {string} sqs_url - a number property of SpecialType
  */
 
 exports.crawler = (event, context, callback) => {
-  /**
-   * @type env process.env
-   */
-  if (!process.env.hasOwnProperty('pages')) {
-    callback("Environment variable 'pages' missing.")
-    return
-  }
 
   config.startPage = 1
-  config.endPage = process.env.pages || 1
+  config.endPage = config.pages || 1
 
   const crawler = require('./crawler')
-  crawler.crawl(config).then(tracks => {
-    // get a promise to queue all tracks
-    return Promise.all(tracks.map((track, i) => queueTrack(track, i)))
-  }).then(res => {
-    callback(null, 'Queued ' + res.length + ' tracks on SQS.')
-    logMetric('Queued', res.length || 0)
+  crawler.crawl(config).then(
+    tracks => queueTracks(tracks)
+  ).then(res => {
+    let tracksQueued = res.reduce((a,b) => a + b, 0)
+    
+    callback(null, 'Queued ' + tracksQueued + ' tracks on SQS.')
+    logMetric('Queued', tracksQueued)
   }).catch(err => {
     callback(err)
   })
@@ -142,6 +145,35 @@ function queueTrack(track, index = 0) {
     });
   })
 
+}
+
+function queueTracks(tracks) {
+  var promises = []
+  var delay = 0
+  while (tracks.length) {
+    promises.push(new Promise((resolve, reject) => {
+      let entries = tracks.splice(0, 10).map((track, i) => ({
+        Id: i + '-' + track.timestamp,
+        MessageBody: JSON.stringify(track),
+        DelaySeconds: delay
+      }))
+      sqs.sendMessageBatch({
+        Entries: entries,
+        QueueUrl: sqs_url
+      }, function (err, data) {
+        if (err) {
+          console.log("Error", err);
+          reject(err)
+        } else {
+          console.log("Tracks successfully queued, message ids: "+data.Successful.map(res => res.Id).join(', '))
+          resolve(data.Successful.length)
+        }
+      })
+    }))
+    delay += 10
+  }
+
+  return Promise.all(promises)
 }
 
 

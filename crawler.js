@@ -45,7 +45,10 @@ async function processPage(page) {
     let pageQueue = []
 
     resTracks.filter(
-        t => (config.artistsToRemove.indexOf(t.artist['#text']) >= 0)
+        (t, i, tracks) => (
+            (config.artistsToRemove.indexOf(t.artist['#text']) >= 0) ||
+            (config.removeDuplicates && i+1 < tracks.length && t.url == tracks[i+1].url && (t.date.uts - tracks[i+1].date.uts) < config.duplicateDistance) 
+        )
     ).map(
         t => {
             return {

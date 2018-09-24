@@ -30,7 +30,6 @@ switch(process.argv[2]) {
     })).catch(err => console.log(err))
     break
   case 'unscrobble':
-  db.get('failed-tracks').push({test:1}).write()   
     console.log("Database contains "+trackTable.size().value()+" items")
     let tracksToUnscrobble = trackTable.take(config.maxUnscrobbleBatchSize).value()
     require('./unscrobble').unscrobble(config, tracksToUnscrobble, track => {

@@ -4,7 +4,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "Deploy to AWS (Quick)",
+            "label": "Deploy Crawler to AWS (Quick)",
             "type": "process",
             "command": "${workspaceFolder}/build/deploy.ps1",
             "presentation": {
@@ -20,6 +20,25 @@
             "group": {
                 "kind": "build",
                 "isDefault": true
+            }
+        },
+        {
+            "label": "Deploy Crawler to AWS (Full)",
+            "type": "process",
+            "command": "${workspaceFolder}/build/deploy.ps1",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared"
+            },
+            "args": [
+                "lastfm-crawler",
+                "-jsOnly $false"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": false
             }
         }
     ]
