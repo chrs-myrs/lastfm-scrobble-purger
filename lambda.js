@@ -94,7 +94,7 @@ exports.unscrobbleTrigger = (event, context, callback) => {
       let successes = ret.reduce((a, b) => a + b, 0)
       logMetric("Unscrobbled", successes)
       logMetric("Unscrobble Fails", ret.length - successes)
-      console.log("Finished with " + ret.reduce((a, b) => a + b, 0) + "/" + ret.length + " sucesses")
+      console.log("Finished with " + successes + "/" + ret.length + " sucesses")
     }).catch(err => console.log(err))
   } catch (err) {
     console.log(err)
