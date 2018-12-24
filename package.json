@@ -7,13 +7,15 @@
     "lowdb": "^1.0.0",
     "readline-sync": "^1.4.9",
     "request": "^2.88.0",
-    "simple-rate-limiter": "^0.2.3"
+    "simple-rate-limiter": "^0.2.3",
+    "url": "^0.11.0"
   },
   "main": "index.js",
   "scripts": {
     "login": "node index.js login",
     "crawl": "node index.js crawl",
-    "unscrobble": "node index.js unscrobble"
+    "unscrobble": "node index.js unscrobble",
+    "download": "node index.js download"
   },
   "repository": {
     "type": "git",
