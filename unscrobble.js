@@ -34,7 +34,7 @@ module.exports = {
                 totalDeleted++
                 trackSuccessCallback(track)
                 return 1
-            }, (error) => {
+            }).catch((error) => {
                 console.log(error)
                 trackFailCallback(error, track)
                 return 0
@@ -52,12 +52,19 @@ function unscrobble(track) {
             {
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept-Language': 'en-GB,en;q=0.7,en-US;q=0.3',
+                'Accept-Encoding': 'gzip, deflate, br',
                 Accept: '*/*',
-                Referer: 'https://www.last.fm/user/chrsmyrs/library'
+                Referer: 'https://www.last.fm/user/chrsmyrs'
             },
         jar: jar,
         gzip: true,
-        form: Object.assign({ 'csrfmiddlewaretoken': session.csrftoken, 'ajax': 1 }, track)
+        form: { 
+            'csrfmiddlewaretoken': session.csrftoken,
+            'artist_name': track.artist_name,
+            'track_name': track.track_name,
+            'timestamp': track.timestamp,
+            'ajax': 1 
+        }
     };
 
     if (config.hasOwnProperty('caFile')) {

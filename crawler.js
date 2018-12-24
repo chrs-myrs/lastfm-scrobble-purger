@@ -32,6 +32,19 @@ module.exports = {
         }
         console.log("Total: Queued " + totalQueued + " scrobbles of " + totalProcessed + " found.");
         return queue
+    },
+    getData: async function (configIn) {
+        let tracks = []
+        config = configIn
+        limitedRequest = limit(request).to(config.requestsPerSecond).per(1000);
+        for (let page = config.startPage; page <= config.endPage; page++) {
+            console.log("Requesting page " + page + " (" + (page - config.startPage + 1) + " of " + (config.endPage - config.startPage + 1) + ")")
+            let pageTracks = await getPage(page)
+            tracks = tracks.concat(pageTracks)
+            console.log("Page " + page + ": " + pageTracks.length + " scrobbles found.");
+            if (pageTracks.length < config.itemsPerPage) break
+        }
+        return tracks
     }
 }
 
@@ -47,16 +60,16 @@ async function processPage(page) {
     resTracks.filter(
         (t, i, tracks) => (
             (config.artistsToRemove.indexOf(t.artist['#text']) >= 0) ||
+            (config.albumsToRemove.indexOf(t.album['#text']) >= 0) ||
             (config.removeDuplicates && i+1 < tracks.length && t.url == tracks[i+1].url && (t.date.uts - tracks[i+1].date.uts) < config.duplicateDistance) 
         )
     ).map(
-        t => {
-            return {
+        t => ({
                 artist_name: t.artist['#text'],
                 timestamp: t.date.uts,
-                track_name: t.name
-            }
-        }
+                track_name: t.name,
+                album_name: t.album['#text']
+            })
         )
         .forEach(function (unscrobbleTrack, index, all) {
             pageQueue.push(unscrobbleTrack)

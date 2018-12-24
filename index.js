@@ -20,14 +20,17 @@ switch(process.argv[2]) {
     require('./login')()
     break
   case 'crawl':
-    require('./crawler').crawl(config).then(tracks => tracks.forEach(track => {
+    require('./crawler').crawl(config).then(tracks => {
         console.log("Writing to database...")
-        if (trackTable.find({ 'timestamp': track.timestamp }).value()) {
-            console.log('Scrobble with timestamp ' + track.timestamp + ' already exisits - skipping.')
-        } else {
-            trackTable.push(track).write()
-        }
-    })).catch(err => console.log(err))
+        tracks.forEach(track => {
+            process.stdout.write('.');
+            if (trackTable.find(track).value()) {
+                console.log('Scrobble with timestamp ' + track.timestamp + ' already exisits - skipping.')
+            } else {
+                trackTable.push(track).write()
+            }
+        })
+    }).catch(err => console.log(err))
     break
   case 'unscrobble':
     console.log("Database contains "+trackTable.size().value()+" items")
@@ -39,6 +42,25 @@ switch(process.argv[2]) {
         trackTable.remove(track).write()                             
     }).then((ret) => {
         console.log("Finished with "+ret.reduce((a,b) => a+b, 0)+"/"+ret.length+" sucesses")
+    }).catch(err => console.log(err))
+    break
+  case 'download':
+    const adapter2 = new FileSync('download.json')
+    const db2 = low(adapter2)
+
+    // Set some defaults (required if your JSON file is empty)
+    db2.defaults({ tracks: [] })
+        .write()
+
+    var trackTable2 = db2.get('tracks')
+    require('./crawler').getData(config).then(tracks => {
+        console.log("Writing to database...")
+        tracks.forEach(track => {
+            process.stdout.write('.');
+            trackTable2.push(track).write()
+        })
+        console.log(" ")
+        console.log("Done")
     }).catch(err => console.log(err))
     break
 
