@@ -4,3 +4,4 @@ db.json
 test.js
 session.yml
 build/*.zip
+download.json
